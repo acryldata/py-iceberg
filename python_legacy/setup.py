@@ -17,13 +17,18 @@
 
 from setuptools import setup
 
+package_metadata: dict = {}
+with open("./iceberg/__init__.py") as fp:
+    exec(fp.read(), package_metadata)
+
 setup(
-    name='iceberg',
-    maintainer='Apache Iceberg Devs',
-    author_email='dev@iceberg.apache.org',
-    description='Iceberg is a new table format for storing large, slow-moving tabular data',
+    name='acryl-iceberg-legacy',
+    version=package_metadata["__version__"],
+    maintainer='Acryl Data',
+    author_email='datahub@acryl.io',
+    description='Acryl maintained copy of Iceberg Python bindings. Iceberg is a new table format for storing large, slow-moving tabular data',
     keywords='iceberg',
-    url='https://github.com/apache/iceberg/blob/master/README.md',
+    url='https://github.com/acryldata/py-iceberg',
     python_requires='>=3.7',
     install_requires=['botocore',
                       'boto3',
