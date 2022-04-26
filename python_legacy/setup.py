@@ -41,7 +41,7 @@ setup(
                       'requests',
                       'retrying',
                       'pandas',
-                      'pyarrow>=3.0.0,<=4.0.1',
+                      'pyarrow>=6.0.1',
                       'azure-storage-file-datalake'
                       ],
     extras_require={
