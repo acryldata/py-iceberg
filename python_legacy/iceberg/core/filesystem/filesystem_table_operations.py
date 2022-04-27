@@ -17,6 +17,7 @@
 
 import logging
 from pathlib import Path
+from typing import Iterator
 import uuid
 
 from iceberg.exceptions import CommitFailedException, ValidationException
@@ -127,7 +128,10 @@ class FilesystemTableOperations(TableOperations):
         else:
             with fs.open(version_hint_file, "r") as fo:
                 # return int(fo.readline().replace("\n", ""))
-                return int(next(fo.readline()))
+                line = fo.readline()
+                if isinstance(line, Iterator):
+                    return int(next(line))
+                return int(line)
 
     def write_version_hint(self, version):
         version_hint_file = str(self.version_hint_file())
