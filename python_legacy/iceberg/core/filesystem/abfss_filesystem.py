@@ -2,8 +2,9 @@ import io
 import logging
 import re
 from pathlib import Path, PosixPath
-from typing import Union
+from typing import Any, Union
 
+from azure.identity import ClientSecretCredential
 from azure.core.exceptions import ResourceNotFoundError
 from azure.storage.filedatalake import (DataLakeFileClient,
                                         DataLakeServiceClient,
@@ -15,8 +16,9 @@ from .file_system import FileSystem
 
 _logger = logging.getLogger(__name__)
 
-ABFSS_CLIENT = None
-CONF = None
+ABFSS_CLIENT: DataLakeServiceClient = None
+ACCOUNT_NAME: str = None
+ACCOUNT_CREDS: Any = None
 
 def url_to_container_datalake_name_tuple(url: Union[Path, str]):
     result = re.search(r"abfss:\/[\/]?(\w+)@([\w\.]+).dfs.core.windows.net\/([\w\-\_\/\.]+)", str(url))
@@ -25,9 +27,6 @@ def url_to_container_datalake_name_tuple(url: Union[Path, str]):
     raise ValueError(f"Invalid abfss url: {url}")
 
 class AbfssFileSystem(FileSystem):
-    ACCOUNT_NAME = "account_name"
-    ACCOUNT_KEY = "account_key"
-    SAS_TOKEN = "sas_token"
     fs_inst = None
 
     @staticmethod
@@ -41,11 +40,13 @@ class AbfssFileSystem(FileSystem):
             AbfssFileSystem.fs_inst = self
 
     def set_conf(self, conf: dict):
-        global CONF
-        CONF = conf
-
-    def _get_credentials(self):
-        return CONF.get(AbfssFileSystem.SAS_TOKEN) if (AbfssFileSystem.SAS_TOKEN in CONF) else CONF.get(AbfssFileSystem.ACCOUNT_KEY)
+        global ACCOUNT_NAME
+        global ACCOUNT_CREDS
+        ACCOUNT_NAME = conf.get("account_name")
+        if conf.get("client_id") and conf.get("client_secret") and conf.get("tenant_id"):
+            ACCOUNT_CREDS = ClientSecretCredential(tenant_id=conf.get("tenant_id"), client_id=conf.get("client_id"), client_secret=conf.get("client_secret"))
+        else:
+            ACCOUNT_CREDS = conf.get("sas_token") if conf.get("sas_token") is not None else conf.get("account_key")
 
     def exists(self, path):
         file_client = AbfssFileSystem.get_instance().getFileClient(path)
@@ -84,10 +85,11 @@ class AbfssFileSystem(FileSystem):
 
     def __get_abfss_service_client(self):
         try:  
+            assert ACCOUNT_CREDS, f"ACCOUNT_CREDS cannot be {ACCOUNT_CREDS}"
+            assert ACCOUNT_NAME, f"ACCOUNT_NAME cannot be {ACCOUNT_NAME}"
             global ABFSS_CLIENT
             if ABFSS_CLIENT is None:
-                ABFSS_CLIENT = DataLakeServiceClient(account_url="{}://{}.dfs.core.windows.net".format(
-                    "https", CONF.get(AbfssFileSystem.ACCOUNT_NAME)), credential=self._get_credentials())
+                ABFSS_CLIENT = DataLakeServiceClient(account_url=f"https://{ACCOUNT_NAME}.dfs.core.windows.net", credential=ACCOUNT_CREDS)
             return ABFSS_CLIENT        
         except Exception as e:
             _logger.error(e)

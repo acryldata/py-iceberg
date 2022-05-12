@@ -42,7 +42,8 @@ setup(
                       'retrying',
                       'pandas',
                       'pyarrow>=6.0.1',
-                      'azure-storage-file-datalake'
+                      'azure-storage-file-datalake',
+                      'azure-identity'
                       ],
     extras_require={
         "dev": [
